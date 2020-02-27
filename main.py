@@ -1,0 +1,109 @@
+
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
+import pygame
+import random
+from enum import Enum
+from argparse import ArgumentParser, RawTextHelpFormatter
+from time import sleep
+from battleship import Battleship
+import colors
+from constants import RECT_MARGIN, RECT_SIZE, SCREEN_PADDING, FONT_SIZE, BOARD_HEIGHT, BOARD_WIDTH, SHIPS, FPS
+from argparse import ArgumentParser, RawTextHelpFormatter
+from pathlib import Path
+
+
+from ai import Ai
+test = Ai(2,2)
+
+parser = ArgumentParser(
+    description="Battleship, defaults can be found in constants.py and colors in colors.py")
+
+parser.add_argument('--ai1', help="File name to the first ai.", dest='ai1', type=str, nargs='?', default=None)
+parser.add_argument('--ai2', help="File name to the second ai.", dest='ai2', type=str, nargs='?', default=None)
+parser.add_argument('--fps', help="How fast the game should update.", dest='fps', type=int, default=FPS)
+
+args = parser.parse_args()
+
+if not args.ai1 or not args.ai2:
+  print("ERROR: You must provide two AIs!")
+  exit(1)
+
+
+
+class Main:
+  def __init__(self):
+    self.width = BOARD_WIDTH
+    self.height = BOARD_HEIGHT
+    self.size = self.calc_size()
+    self.running = True
+    self.display = None
+    self.image_ship = None
+    self.clock = None
+    self.game = None
+    self.font = None
+    self.ais = []
+    self.ai_names = []
+
+  def calc_size(self):
+    height = (RECT_SIZE * self.height + (self.height + 1) * RECT_MARGIN) + SCREEN_PADDING * 3
+    width = (RECT_SIZE * self.width + (self.width + 1) * RECT_MARGIN) * 2 + SCREEN_PADDING * 6
+    return [width, height]
+
+  def on_init(self):
+    pygame.init()
+    pygame.font.init()
+    pygame.display.set_caption('Battleship')
+    self.font = pygame.font.Font('./Roboto-Regular.ttf', FONT_SIZE)
+    self.display = pygame.display.set_mode(self.size, pygame.HWSURFACE | pygame.DOUBLEBUF)
+    self.clock = pygame.time.Clock()
+    self.running = True
+    self.init_ais()
+    self.game = Battleship(self.display, self.font, self.width, self.height, SHIPS, self.ais, self.ai_names)
+
+  def on_event(self, event):
+    if event.type == pygame.QUIT:
+      self.running = False
+    if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+      self.running = False
+
+    if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE and self.game.game_ended:
+      self.init_ais()
+      self.game = Battleship(self.display, self.font, self.width, self.height, SHIPS, self.ais, self.ai_names)
+
+  def on_loop(self):
+    self.game.next_turn()
+
+  def on_render(self):
+    self.game.draw()
+    pygame.display.update()
+    self.clock.tick(args.fps)
+
+  def on_cleanup(self):
+    pygame.quit()
+
+  def run(self):
+    if self.on_init() == False:
+      self.running = False
+
+    while(self.running):
+      for event in pygame.event.get():
+        self.on_event(event)
+      self.on_loop()
+      self.on_render()
+    self.on_cleanup()
+
+  def init_ais(self):
+    ai1_module = __import__(args.ai1.replace('.py', '').replace('.\\', ''))
+    ai1 = ai1_module.Ai(BOARD_WIDTH, BOARD_HEIGHT)
+    ai2_module = __import__(args.ai2.replace('.py', '').replace('.\\', ''))
+    ai2 = ai2_module.Ai(BOARD_WIDTH, BOARD_HEIGHT)
+    self.ais = [ai1, ai2]
+    self.ai_names = [
+      Path(ai1_module.__file__).stem,
+      Path(ai2_module.__file__).stem
+    ]
+
+if __name__ == "__main__":
+  main = Main()
+  main.run()
