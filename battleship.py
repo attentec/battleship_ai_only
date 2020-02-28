@@ -8,9 +8,10 @@ import random
 class Battleship:
   """Game mechanics class."""
 
-  def __init__(self, display, font, width, height, ships, ais):
+  def __init__(self, display, font, small_font, width, height, ships, ais):
     self.display = display
     self.font = font
+    self.small_font = small_font
     self.width = width
     self.height = height
 
@@ -23,31 +24,40 @@ class Battleship:
       [[Tile() for _ in range(self.width)] for _ in range(self.height)]
     ]
 
-    self.next_ship_id = 1
-    self.place_ai_ships(ships)
-
     self.game_ended = False
     self.message = ""
+    self.hint = ""
+
+    self.next_ship_id = 1
+    self.place_ai_ships(ships)
 
 
   def place_ai_ships(self, ships):
     for ship_len in ships:
       x, y, rotation = self.ais[self.current_turn].place_ship(ship_len, self.valid_ship_pos)
       if not self.valid_ship_pos(x, y, rotation, ship_len):
-        print(self.ais[self.current_turn].name + " tried to place a invalid ship!")
-        exit(1)
+        self.message = f"Winner: {self.ais[self.next_turn].name}"
+        self.hint = f"{self.ais[self.current_turn].name} placed an invalid ship: (x: {x}, y: {y}, r: {rotation})"
+        self.ais[self.next_turn].wins += 1
+        self.game_ended = True
+        break
       self.place_ship(x, y, ship_len, rotation)
 
     self.current_turn = (self.current_turn + 1) % 2
+    self.next_turn = (self.current_turn + 1) % 2
 
     for ship_len in ships:
       x, y, rotation = self.ais[self.current_turn].place_ship(ship_len, self.valid_ship_pos)
       if not self.valid_ship_pos(x, y, rotation, ship_len):
-        print(self.ais[self.current_turn].name + " tried to place a invalid ship!")
-        exit()
+        self.message = f"Winner: {self.ais[self.next_turn].name}"
+        self.hint = f"{self.ais[self.current_turn].name} placed an invalid ship: (x: {x}, y: {y}, r: {rotation})"
+        self.ais[self.next_turn].wins += 1
+        self.game_ended = True
+        break
       self.place_ship(x, y, ship_len, rotation)
 
     self.current_turn = (self.current_turn + 1) % 2
+    self.next_turn = (self.current_turn + 1) % 2
 
   def run(self):
     if self.game_ended:
@@ -55,19 +65,32 @@ class Battleship:
 
     x, y = self.ais[self.current_turn].get_move()
 
+    if self.x_out_of_bounds(x) or self.y_out_of_bounds(y):
+      self.message = f"Winner: {self.ais[self.next_turn].name}"
+      self.hint =  f"{self.ais[self.current_turn].name} shot outside the board: (x: {x}, y: {y})"
+      self.ais[self.next_turn].wins += 1
+      self.game_ended = True
+      return
+
     result = 0
     tile = self.ai_boards[self.next_turn][y][x]
+
+    if tile.hit or tile.miss:
+      self.game_ended = True
+      self.message = f"Winner: {self.ais[self.next_turn].name}"
+      self.hint = f"{self.ais[self.current_turn].name} shot twice on the same coordinate: (x: {x}, y: {y})"
+      self.ais[self.next_turn].wins += 1
+      return
+
     if tile.is_ship:
       tile.hit = True
       result = 2 if self.ship_sunk(tile.ship_id) else 1
       if self.all_ships_sunk():
         self.game_ended = True
+        self.message = f"Winner: {self.ais[self.current_turn].name}"
+        self.ais[self.current_turn].wins += 1
     else:
       self.ai_boards[self.next_turn][y][x].miss = True
-
-    if self.game_ended:
-      self.message = "Winner: " + self.ais[self.current_turn].name
-      self.ais[self.current_turn].wins += 1
 
     self.ais[self.current_turn].last_result = result
 
@@ -133,9 +156,13 @@ class Battleship:
   def draw(self):
     self.display.fill(colors.BACKGROUND)
     self.draw_boards()
-    self.draw_text("Board for: " + self.ais[0].name, SCREEN_PADDING, (SCREEN_PADDING - FONT_SIZE) / 2)
+    self.draw_texts()
+
+
+  def draw_texts(self):
+    self.draw_text(f"Board for: {self.ais[0].name}", SCREEN_PADDING, (SCREEN_PADDING - FONT_SIZE) / 2)
     offset = RECT_SIZE * self.width + (self.width + 1) * RECT_MARGIN + SCREEN_PADDING * 4
-    self.draw_text("Board for: " + self.ais[1].name, SCREEN_PADDING + offset, (SCREEN_PADDING - FONT_SIZE) / 2)
+    self.draw_text(f"Board for: {self.ais[1].name}", SCREEN_PADDING + offset, (SCREEN_PADDING - FONT_SIZE) / 2)
 
     middle_y = ((RECT_SIZE * self.height + (self.height + 1) * RECT_MARGIN) + SCREEN_PADDING * 2) / 2 - FONT_SIZE
     self.draw_center_text('vs', middle_y)
@@ -143,16 +170,22 @@ class Battleship:
     message_y = (RECT_SIZE * self.height + (self.height + 1) * RECT_MARGIN) + SCREEN_PADDING * 3 - FONT_SIZE
     self.draw_center_text(self.message, message_y)
 
-    wins_text_y = (RECT_SIZE * self.height + (self.height + 1) * RECT_MARGIN) + SCREEN_PADDING
-    self.draw_text("Wins: " + str(self.ais[0].wins), SCREEN_PADDING, wins_text_y)
-    self.draw_text("Wins: " + str(self.ais[1].wins), SCREEN_PADDING + offset, wins_text_y)
+    hint_y = message_y + FONT_SIZE
+    self.draw_center_text(self.hint, hint_y, self.small_font)
 
-  def draw_text(self, text, x, y):
-    textsurface = self.font.render(text, True, colors.TEXT)
+    wins_y = (RECT_SIZE * self.height + (self.height + 1) * RECT_MARGIN) + SCREEN_PADDING
+    self.draw_text(f"Wins: {self.ais[0].wins}", SCREEN_PADDING, wins_y)
+    self.draw_text(f"Wins: {self.ais[1].wins}", SCREEN_PADDING + offset, wins_y)
+
+
+  def draw_text(self, text, x, y, font=None):
+    font = self.font if font is None else font
+    textsurface = font.render(text, True, colors.TEXT)
     self.display.blit(textsurface, (x, y))
 
-  def draw_center_text(self, text, y):
-    text = self.font.render(text, True, colors.TEXT)
+  def draw_center_text(self, text, y, font=None):
+    font = self.font if font is None else font
+    text = font.render(text, True, colors.TEXT)
     width = (RECT_SIZE * self.width + (self.width + 1) * RECT_MARGIN) * 2 + SCREEN_PADDING * 6
     text_rect = text.get_rect(center=(width/2, y))
     self.display.blit(text, text_rect)

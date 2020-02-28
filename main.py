@@ -8,7 +8,7 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 from time import sleep
 from battleship import Battleship
 import colors
-from constants import RECT_MARGIN, RECT_SIZE, SCREEN_PADDING, FONT_SIZE, BOARD_HEIGHT, BOARD_WIDTH, SHIPS, FPS
+from constants import RECT_MARGIN, RECT_SIZE, SCREEN_PADDING, FONT_SIZE, BOARD_HEIGHT, BOARD_WIDTH, SHIPS, FPS, HINT_FONT_SIZE
 from argparse import ArgumentParser, RawTextHelpFormatter
 from ai_container import AiContainer
 
@@ -31,32 +31,23 @@ ais = [
 
 class Main:
   def __init__(self):
+    pygame.init()
+    pygame.font.init()
+    pygame.display.set_caption('Battleship')
     self.width = BOARD_WIDTH
     self.height = BOARD_HEIGHT
     self.size = self.calc_size()
     self.running = True
-    self.display = None
-    self.image_ship = None
-    self.clock = None
-    self.game = None
-    self.font = None
-    self.ais = []
-    self.ai_names = []
-
-  def calc_size(self):
-    height = (RECT_SIZE * self.height + (self.height + 1) * RECT_MARGIN) + SCREEN_PADDING * 3
-    width = (RECT_SIZE * self.width + (self.width + 1) * RECT_MARGIN) * 2 + SCREEN_PADDING * 6
-    return [width, height]
-
-  def on_init(self):
-    pygame.init()
-    pygame.font.init()
-    pygame.display.set_caption('Battleship')
-    self.font = pygame.font.Font('./Roboto-Regular.ttf', FONT_SIZE)
     self.display = pygame.display.set_mode(self.size, pygame.HWSURFACE | pygame.DOUBLEBUF)
     self.clock = pygame.time.Clock()
-    self.running = True
-    self.game = Battleship(self.display, self.font, self.width, self.height, SHIPS, ais)
+    self.font = pygame.font.Font('./Roboto-Regular.ttf', FONT_SIZE)
+    self.small_font = pygame.font.Font('./Roboto-Regular.ttf', HINT_FONT_SIZE)
+    self.game = Battleship(self.display, self.font, self.small_font, self.width, self.height, SHIPS, ais)
+
+  def calc_size(self):
+    height = (RECT_SIZE * self.height + (self.height + 1) * RECT_MARGIN) + SCREEN_PADDING * 4
+    width = (RECT_SIZE * self.width + (self.width + 1) * RECT_MARGIN) * 2 + SCREEN_PADDING * 6
+    return [width, height]
 
   def on_event(self, event):
     if event.type == pygame.QUIT:
@@ -67,7 +58,7 @@ class Main:
     if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE and self.game.game_ended:
       for ai in ais:
         ai.reset_ai()
-      self.game = Battleship(self.display, self.font, self.width, self.height, SHIPS, ais)
+      self.game = Battleship(self.display, self.font, self.small_font, self.width, self.height, SHIPS, ais)
 
   def on_loop(self):
     self.game.run()
@@ -81,9 +72,6 @@ class Main:
     pygame.quit()
 
   def run(self):
-    if self.on_init() == False:
-      self.running = False
-
     while(self.running):
       for event in pygame.event.get():
         self.on_event(event)
