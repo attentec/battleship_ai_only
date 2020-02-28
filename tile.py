@@ -1,8 +1,7 @@
 import colors
 
 class Tile:
-  def __init__(self, is_water, ship_id=-1, ship_piece="^"):
-    self.is_water = is_water
+  def __init__(self, ship_id=-1, ship_piece="^"):
     self.ship_id = ship_id
     self.ship_piece = ship_piece # ^, v, <, >, |, -
     self.hit = False
@@ -23,4 +22,3 @@ class Tile:
   @property
   def is_ship(self):
       return not self.ship_id == -1
-

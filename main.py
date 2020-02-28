@@ -10,15 +10,10 @@ from battleship import Battleship
 import colors
 from constants import RECT_MARGIN, RECT_SIZE, SCREEN_PADDING, FONT_SIZE, BOARD_HEIGHT, BOARD_WIDTH, SHIPS, FPS
 from argparse import ArgumentParser, RawTextHelpFormatter
-from pathlib import Path
+from ai_container import AiContainer
 
 
-from ai import Ai
-test = Ai(2,2)
-
-parser = ArgumentParser(
-    description="Battleship, defaults can be found in constants.py and colors in colors.py")
-
+parser = ArgumentParser(description="Battleship, defaults can be found in constants.py and colors in colors.py")
 parser.add_argument('--ai1', help="File name to the first ai.", dest='ai1', type=str, nargs='?', default=None)
 parser.add_argument('--ai2', help="File name to the second ai.", dest='ai2', type=str, nargs='?', default=None)
 parser.add_argument('--fps', help="How fast the game should update.", dest='fps', type=int, default=FPS)
@@ -29,7 +24,10 @@ if not args.ai1 or not args.ai2:
   print("ERROR: You must provide two AIs!")
   exit(1)
 
-
+ais = [
+  AiContainer(args.ai1),
+  AiContainer(args.ai2)
+]
 
 class Main:
   def __init__(self):
@@ -58,8 +56,7 @@ class Main:
     self.display = pygame.display.set_mode(self.size, pygame.HWSURFACE | pygame.DOUBLEBUF)
     self.clock = pygame.time.Clock()
     self.running = True
-    self.init_ais()
-    self.game = Battleship(self.display, self.font, self.width, self.height, SHIPS, self.ais, self.ai_names)
+    self.game = Battleship(self.display, self.font, self.width, self.height, SHIPS, ais)
 
   def on_event(self, event):
     if event.type == pygame.QUIT:
@@ -68,11 +65,12 @@ class Main:
       self.running = False
 
     if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE and self.game.game_ended:
-      self.init_ais()
-      self.game = Battleship(self.display, self.font, self.width, self.height, SHIPS, self.ais, self.ai_names)
+      for ai in ais:
+        ai.reset_ai()
+      self.game = Battleship(self.display, self.font, self.width, self.height, SHIPS, ais)
 
   def on_loop(self):
-    self.game.next_turn()
+    self.game.run()
 
   def on_render(self):
     self.game.draw()
@@ -92,17 +90,6 @@ class Main:
       self.on_loop()
       self.on_render()
     self.on_cleanup()
-
-  def init_ais(self):
-    ai1_module = __import__(args.ai1.replace('.py', '').replace('.\\', ''))
-    ai1 = ai1_module.Ai(BOARD_WIDTH, BOARD_HEIGHT)
-    ai2_module = __import__(args.ai2.replace('.py', '').replace('.\\', ''))
-    ai2 = ai2_module.Ai(BOARD_WIDTH, BOARD_HEIGHT)
-    self.ais = [ai1, ai2]
-    self.ai_names = [
-      Path(ai1_module.__file__).stem,
-      Path(ai2_module.__file__).stem
-    ]
 
 if __name__ == "__main__":
   main = Main()

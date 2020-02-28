@@ -5,26 +5,23 @@ from collections import defaultdict
 from tile import Tile
 import random
 
-#random.seed(a=1, version=2)
-
-
 class Battleship:
   """Game mechanics class."""
 
-  def __init__(self, display, font, width, height, ships, ais, ai_names):
+  def __init__(self, display, font, width, height, ships, ais):
     self.display = display
     self.font = font
     self.width = width
     self.height = height
 
-    self.ai_turn = random.randint(0,1)
+    self.current_turn = random.randint(0,1)
+    self.next_turn = (self.current_turn + 1) % 2
+
     self.ais = ais
     self.ai_boards = [
-      [[Tile(True) for _ in range(self.width)] for _ in range(self.height)],
-      [[Tile(True) for _ in range(self.width)] for _ in range(self.height)]
+      [[Tile() for _ in range(self.width)] for _ in range(self.height)],
+      [[Tile() for _ in range(self.width)] for _ in range(self.height)]
     ]
-    self.ai_names = ai_names
-    self.last_result = [None, None]
 
     self.next_ship_id = 1
     self.place_ai_ships(ships)
@@ -35,50 +32,47 @@ class Battleship:
 
   def place_ai_ships(self, ships):
     for ship_len in ships:
-      x, y, rotation = self.ais[self.ai_turn].place_ship(ship_len, self.valid_ship_pos)
+      x, y, rotation = self.ais[self.current_turn].place_ship(ship_len, self.valid_ship_pos)
       if not self.valid_ship_pos(x, y, rotation, ship_len):
-        print(self.ai_names[self.ai_turn] + " tried to place a invalid ship!")
+        print(self.ais[self.current_turn].name + " tried to place a invalid ship!")
         exit(1)
       self.place_ship(x, y, ship_len, rotation)
 
-    self.ai_turn = (self.ai_turn + 1) % 2
+    self.current_turn = (self.current_turn + 1) % 2
 
     for ship_len in ships:
-      x, y, rotation = self.ais[self.ai_turn].place_ship(ship_len, self.valid_ship_pos)
+      x, y, rotation = self.ais[self.current_turn].place_ship(ship_len, self.valid_ship_pos)
       if not self.valid_ship_pos(x, y, rotation, ship_len):
-        print(self.ai_names[self.ai_turn] + " tried to place a invalid ship!")
+        print(self.ais[self.current_turn].name + " tried to place a invalid ship!")
         exit()
       self.place_ship(x, y, ship_len, rotation)
 
-    self.ai_turn = (self.ai_turn + 1) % 2
+    self.current_turn = (self.current_turn + 1) % 2
 
-  def next_turn(self):
+  def run(self):
     if self.game_ended:
       return
 
-    x, y = self.ais[self.ai_turn].get_move(self.last_result[self.ai_turn])
-    self.ai_turn = (self.ai_turn + 1) % 2
+    x, y = self.ais[self.current_turn].get_move()
 
     result = 0
-    tile = self.ai_boards[self.ai_turn][y][x]
+    tile = self.ai_boards[self.next_turn][y][x]
     if tile.is_ship:
       tile.hit = True
-      if self.ship_sunk(tile.ship_id):
-        result = 2
-      else:
-        result = 1
+      result = 2 if self.ship_sunk(tile.ship_id) else 1
       if self.all_ships_sunk():
         self.game_ended = True
     else:
-      self.ai_boards[self.ai_turn][y][x].miss = True
-
-    self.ai_turn = (self.ai_turn + 1) % 2
+      self.ai_boards[self.next_turn][y][x].miss = True
 
     if self.game_ended:
-        self.message = "Winner: " + self.ai_names[self.ai_turn]
+      self.message = "Winner: " + self.ais[self.current_turn].name
+      self.ais[self.current_turn].wins += 1
 
-    self.last_result[self.ai_turn] = result
-    self.ai_turn = (self.ai_turn + 1) % 2
+    self.ais[self.current_turn].last_result = result
+
+    self.current_turn = (self.current_turn + 1) % 2
+    self.next_turn = (self.next_turn + 1) % 2
 
 
 
@@ -114,14 +108,14 @@ class Battleship:
   def all_ships_sunk(self):
     for x in range(self.width):
       for y in range(self.height):
-        if self.ai_boards[self.ai_turn][y][x].is_ship and not self.ai_boards[self.ai_turn][y][x].hit:
+        if self.ai_boards[self.next_turn][y][x].is_ship and not self.ai_boards[self.next_turn][y][x].hit:
           return False
     return True
 
   def ship_sunk(self, id):
     for x in range(self.width):
       for y in range(self.height):
-        if self.ai_boards[self.ai_turn][y][x].ship_id == id and not self.ai_boards[self.ai_turn][y][x].hit:
+        if self.ai_boards[self.next_turn][y][x].ship_id == id and not self.ai_boards[self.next_turn][y][x].hit:
           return False
     return True
 
@@ -139,15 +133,19 @@ class Battleship:
   def draw(self):
     self.display.fill(colors.BACKGROUND)
     self.draw_boards()
-    self.draw_text(self.ai_names[0] + " board", SCREEN_PADDING, (SCREEN_PADDING - FONT_SIZE) / 2)
+    self.draw_text("Board for: " + self.ais[0].name, SCREEN_PADDING, (SCREEN_PADDING - FONT_SIZE) / 2)
     offset = RECT_SIZE * self.width + (self.width + 1) * RECT_MARGIN + SCREEN_PADDING * 4
-    self.draw_text(self.ai_names[1] + " board", SCREEN_PADDING + offset, (SCREEN_PADDING - FONT_SIZE) / 2)
+    self.draw_text("Board for: " + self.ais[1].name, SCREEN_PADDING + offset, (SCREEN_PADDING - FONT_SIZE) / 2)
 
     middle_y = ((RECT_SIZE * self.height + (self.height + 1) * RECT_MARGIN) + SCREEN_PADDING * 2) / 2 - FONT_SIZE
     self.draw_center_text('vs', middle_y)
 
-    btm_text_y = (RECT_SIZE * self.height + (self.height + 1) * RECT_MARGIN) + SCREEN_PADDING * 2
-    self.draw_center_text(self.message, btm_text_y)
+    message_y = (RECT_SIZE * self.height + (self.height + 1) * RECT_MARGIN) + SCREEN_PADDING * 3 - FONT_SIZE
+    self.draw_center_text(self.message, message_y)
+
+    wins_text_y = (RECT_SIZE * self.height + (self.height + 1) * RECT_MARGIN) + SCREEN_PADDING
+    self.draw_text("Wins: " + str(self.ais[0].wins), SCREEN_PADDING, wins_text_y)
+    self.draw_text("Wins: " + str(self.ais[1].wins), SCREEN_PADDING + offset, wins_text_y)
 
   def draw_text(self, text, x, y):
     textsurface = self.font.render(text, True, colors.TEXT)
@@ -168,7 +166,7 @@ class Battleship:
 
 
   def valid_ship_pos(self, x, y, rotation, ship_len):
-    board = self.ai_boards[self.ai_turn]
+    board = self.ai_boards[self.current_turn]
     if self.x_out_of_bounds(x) or self.y_out_of_bounds(y) or rotation not in [0, 90]:
       return False
     if rotation == 0:
@@ -182,16 +180,16 @@ class Battleship:
     return True
 
   def place_ship(self, x, y, ship_len, rotation):
-    board = self.ai_boards[self.ai_turn]
+    board = self.ai_boards[self.current_turn]
     id = self.next_ship_id
     if rotation == 0:
       for i in range(ship_len):
         piece = "<" if i == 0 else ">" if i == ship_len - 1 else '-'
-        board[y][x + i] = Tile(False, id, piece)
+        board[y][x + i] = Tile(id, piece)
     elif rotation == 90:
       for i in range(ship_len):
         piece = "^" if i == 0 else "v" if i == ship_len - 1 else '|'
-        board[y + i][x] = Tile(False, id, piece)
+        board[y + i][x] = Tile(id, piece)
     self.next_ship_id += 1
 
   def x_out_of_bounds(self, x):
