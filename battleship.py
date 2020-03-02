@@ -4,6 +4,10 @@ from constants import RECT_MARGIN, RECT_SIZE, SCREEN_PADDING, FONT_SIZE, SHIP_PA
 from collections import defaultdict
 from tile import Tile
 import random
+import traceback
+import time
+import concurrent.futures as futures
+
 
 class Battleship:
   """Game mechanics class."""
@@ -59,11 +63,46 @@ class Battleship:
     self.current_turn = (self.current_turn + 1) % 2
     self.next_turn = (self.current_turn + 1) % 2
 
+
+  def timeout(timelimit):
+    def decorator(func):
+      def decorated(*args, **kwargs):
+        with futures.ThreadPoolExecutor(max_workers=1) as executor:
+          future = executor.submit(func, *args, **kwargs)
+          try:
+            result = future.result(timelimit)
+          except futures.TimeoutError:
+            raise TimeoutError()
+          executor._threads.clear()
+          futures.thread._threads_queues.clear()
+          return result
+      return decorated
+    return decorator
+
+  @timeout(3)
+  def get_move_from_ai(self, ai):
+    return ai.get_move()
+
   def run(self):
     if self.game_ended:
       return
 
-    x, y = self.ais[self.current_turn].get_move()
+    try:
+      x, y = self.get_move_from_ai(self.ais[self.current_turn])
+    except TimeoutError:
+      self.message = f"Winner: {self.ais[self.next_turn].name}"
+      self.hint =  f"{self.ais[self.current_turn].name} took more than 3 seconds."
+      self.ais[self.next_turn].wins += 1
+      self.game_ended = True
+      return
+    except Exception:
+      self.message = f"Winner: {self.ais[self.next_turn].name}"
+      self.hint =  f"{self.ais[self.current_turn].name} crashed, see terminal"
+      self.ais[self.next_turn].wins += 1
+      self.game_ended = True
+      print()
+      traceback.print_exc()
+      return
 
     if self.x_out_of_bounds(x) or self.y_out_of_bounds(y):
       self.message = f"Winner: {self.ais[self.next_turn].name}"
