@@ -10,7 +10,7 @@ from battleship import Battleship
 import colors
 from constants import RECT_MARGIN, RECT_SIZE, SCREEN_PADDING, FONT_SIZE, BOARD_HEIGHT, BOARD_WIDTH, SHIPS, FPS, HINT_FONT_SIZE
 from argparse import ArgumentParser, RawTextHelpFormatter
-from ai_container import AiContainer
+from container import AiContainer
 
 
 parser = ArgumentParser(description="Battleship, defaults can be found in constants.py and colors in colors.py")
