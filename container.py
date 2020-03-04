@@ -12,6 +12,7 @@ class AiContainer:
 
   def reset_ai(self):
     self.ai = self.module.Ai(BOARD_WIDTH, BOARD_HEIGHT)
+    self.last_result = None
 
   def place_ship(self, ship_len, valid_pos_fn):
     return self.ai.place_ship(ship_len, valid_pos_fn)
