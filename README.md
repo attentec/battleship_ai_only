@@ -27,7 +27,7 @@ The game is lost if any of the following happens
 - All of your ships sunk
 - You shot outside of the board
 - You shot twice on the same coordinate
-- You took more than 5 seconds to determine your next move
+- You took more than 3 seconds to determine your next move
 - Your implementation crashed
 
 ## Controls
