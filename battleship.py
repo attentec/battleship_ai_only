@@ -100,8 +100,9 @@ class Battleship:
       self.hint =  f"{self.ais[self.current_turn].name} crashed, see terminal"
       self.ais[self.next_turn].wins += 1
       self.game_ended = True
-      print()
+      print("\n{:-^80}".format(f" Traceback for {self.ais[self.current_turn].name} "))
       traceback.print_exc()
+      print("{:-^80}".format(" End of traceback "))
       return
 
     if self.x_out_of_bounds(x) or self.y_out_of_bounds(y):
