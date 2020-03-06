@@ -3,13 +3,10 @@ import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
 import random
-from enum import Enum
 from argparse import ArgumentParser, RawTextHelpFormatter
-from time import sleep
 from battleship import Battleship
 import colors
 from constants import RECT_MARGIN, RECT_SIZE, SCREEN_PADDING, FONT_SIZE, BOARD_HEIGHT, BOARD_WIDTH, SHIPS, FPS, HINT_FONT_SIZE
-from argparse import ArgumentParser, RawTextHelpFormatter
 from container import AiContainer
 
 
@@ -62,6 +59,12 @@ class Main:
 
   def on_loop(self):
     self.game.run()
+
+    # todo: remove
+    if self.game.game_ended:
+      for ai in ais:
+        ai.reset_ai()
+      self.game = Battleship(self.display, self.font, self.small_font, self.width, self.height, SHIPS, ais)
 
   def on_render(self):
     self.game.draw()

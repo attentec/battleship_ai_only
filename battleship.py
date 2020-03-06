@@ -1,11 +1,9 @@
 import colors
 import pygame
 from constants import RECT_MARGIN, RECT_SIZE, SCREEN_PADDING, FONT_SIZE, SHIP_PADDING
-from collections import defaultdict
 from tile import Tile
 import random
 import traceback
-import time
 import concurrent.futures as futures
 
 
