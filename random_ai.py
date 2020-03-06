@@ -21,7 +21,8 @@ class Ai():
                         1 = Hit
                         2 = Hit + ship sunken
 
-    :return: The coordinates to fire at as a list [x, y], upper left is [0, 0]
+    :return: The coordinates to fire at as a list [x: int, y: int]
+             Upper left is [0, 0] and bottom right is [self.width - 1, self.height - 1]
     """
     return self.moves.pop()
 
