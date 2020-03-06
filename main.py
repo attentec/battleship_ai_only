@@ -31,6 +31,10 @@ class Main:
     pygame.init()
     pygame.font.init()
     pygame.display.set_caption('Battleship')
+    icon = pygame.Surface((1, 1))
+    icon.fill(colors.MISS)
+    pygame.display.set_icon(icon)
+
     self.width = BOARD_WIDTH
     self.height = BOARD_HEIGHT
     self.size = self.calc_size()
