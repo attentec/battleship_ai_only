@@ -6,7 +6,7 @@ import random
 from argparse import ArgumentParser, RawTextHelpFormatter
 from battleship import Battleship
 import colors
-from constants import RECT_MARGIN, RECT_SIZE, SCREEN_PADDING, FONT_SIZE, BOARD_HEIGHT, BOARD_WIDTH, SHIPS, FPS, HINT_FONT_SIZE
+from constants import RECT_MARGIN, RECT_SIZE, SCREEN_PADDING, FONT_SIZE, BOARD_HEIGHT, BOARD_WIDTH, SHIPS, FPS, HINT_FONT_SIZE, AUTO_REMATCH
 from container import AiContainer
 
 
@@ -64,8 +64,7 @@ class Main:
   def on_loop(self):
     self.game.run()
 
-    # todo: remove
-    if self.game.game_ended:
+    if AUTO_REMATCH and self.game.game_ended:
       for ai in ais:
         ai.reset_ai()
       self.game = Battleship(self.display, self.font, self.small_font, self.width, self.height, SHIPS, ais)
