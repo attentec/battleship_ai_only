@@ -87,6 +87,12 @@ class Battleship:
 
     try:
       x, y = self.get_move_from_ai(self.ais[self.current_turn])
+      if not isinstance(x, int) or not isinstance(y, int):
+        self.message = f"Winner: {self.ais[self.next_turn].name}"
+        self.hint =  f"{self.ais[self.current_turn].name} sent invalid coordinates: (x: {x}, y: {y})"
+        self.ais[self.next_turn].wins += 1
+        self.game_ended = True
+        return
     except TimeoutError:
       self.message = f"Winner: {self.ais[self.next_turn].name}"
       self.hint =  f"{self.ais[self.current_turn].name} took more than 3 seconds."
@@ -238,7 +244,7 @@ class Battleship:
 
   def valid_ship_pos(self, x, y, rotation, ship_len):
     board = self.ai_boards[self.current_turn]
-    if self.x_out_of_bounds(x) or self.y_out_of_bounds(y) or rotation not in [0, 90]:
+    if not isinstance(x, int) or not isinstance(y, int) or self.x_out_of_bounds(x) or self.y_out_of_bounds(y) or rotation not in [0, 90]:
       return False
     if rotation == 0:
       for i in range(ship_len):
