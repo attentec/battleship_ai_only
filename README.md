@@ -1,4 +1,6 @@
 # Battleship
+![Alt text](/screenshot.png?raw=true "Screenshot")
+
 This is a game of Battleship where two AIs play against each other.
 
 ## Installation
